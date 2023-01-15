@@ -1,15 +1,28 @@
-import { Auth } from "aws-amplify";
+import { Auth, Hub } from "aws-amplify";
 import { useEffect, useState } from "react";
 import { withAuthenticator, Authenticator } from "@aws-amplify/ui-react";
 import Container from "./Container";
+import Form from "./Form";
 
 interface IProps {}
+
+interface IUserType {
+  username: string;
+  email: string;
+  phone_number: string;
+}
 
 const Profile: React.FC<IProps> = () => {
   useEffect(() => {
     checkUser();
+    Hub.listen("auth", (data) => {
+      const { payload } = data;
+      if (payload.event === "signOut") {
+        setUser(null);
+      }
+    });
   }, []);
-  const [user, setUser] = useState({
+  const [user, setUser] = useState<IUserType | null>({
     username: "",
     email: "",
     phone_number: "",
@@ -23,7 +36,11 @@ const Profile: React.FC<IProps> = () => {
       console.log("error:", err);
     }
   }
-  return (
+
+  const signOut = () => {
+    Auth.signOut().catch((err) => console.log("error signing out", err));
+  };
+  return user ? (
     <Container>
       <h1>Profile</h1>
       <h2>Username: {user.username}</h2>
@@ -37,6 +54,8 @@ const Profile: React.FC<IProps> = () => {
         )}
       </Authenticator>
     </Container>
+  ) : (
+    <Form setUser={setUser} />
   );
 };
 
